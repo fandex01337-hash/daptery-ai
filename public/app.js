@@ -1,4 +1,4 @@
-import { renderSample, demoResult, STACK_IDS } from './sample.js';
+import { renderSample, demoResult, stackIds } from './sample.js';
 
 /* ===== Константы ===== */
 const STORE_KEY = 'daptery.works.v1';
@@ -372,14 +372,19 @@ function updateCheckBtn() {
 }
 
 /* ===== Примеры ===== */
-async function samplePhoto(id) {
-  const s = await renderSample(id);
+// Пример строится под предмет и класс, выбранные учителем; сами поля не меняются.
+const sampleTarget = () => ({ subject: $('subject').value, grade: Number($('grade').value) });
+
+async function samplePhoto(opts) {
+  const s = await renderSample(opts);
   return {
     dataUrl: s.dataUrl, width: s.width, height: s.height,
     bytes: Math.round((s.dataUrl.length - 23) * 0.75),
-    source: 'sample', sampleId: s.id, lang: s.lang,
+    source: 'sample', sampleId: s.id, lang: s.lang, topic: s.topic,
   };
 }
+
+const LANG_NOTE = { kz: ' (на казахском языке)', en: ' (на английском языке)', ru: '' };
 
 function pickNames(n) {
   const used = new Set([...state.works.map((w) => w.name), ...state.queue.map((q) => q.name)]);
@@ -392,18 +397,16 @@ $('sampleBtn').addEventListener('click', async () => {
   if (state.busy) return;
   $('sampleBtn').disabled = true;
   try {
-    const photo = await samplePhoto();
+    if (state.queue.length >= MAX_QUEUE) { toast(`В стопке уже ${MAX_QUEUE} работ`); return; }
+    const photo = await samplePhoto(sampleTarget());
     if (state.queue.length) {
-      if (state.queue.length >= MAX_QUEUE) { toast(`В стопке уже ${MAX_QUEUE} работ`); return; }
       addToQueue(photo, pickNames(1)[0]);
       renderInput();
     } else {
       setPhoto(photo);
       if (!$('studentName').value.trim()) $('studentName').value = pickNames(1)[0];
     }
-    $('subject').value = 'алгебра';
-    $('grade').value = '7';
-    toast(photo.lang === 'kz' ? 'Пример готов (на казахском языке)' : 'Пример готов — в решении спрятана ошибка');
+    toast(`Пример готов: ${photo.topic}${LANG_NOTE[photo.lang] || ''} — в работе спрятана ошибка`);
   } catch (e) {
     console.error(e);
     toast('Не удалось сгенерировать пример');
@@ -417,17 +420,17 @@ $('stackBtn').addEventListener('click', async () => {
   $('stackBtn').disabled = true;
   try {
     moveSingleToQueue();
-    const names = pickNames(STACK_IDS.length);
+    const { subject, grade } = sampleTarget();
+    const ids = stackIds(subject, grade);
+    const names = pickNames(ids.length);
     let added = 0;
-    for (const [i, id] of STACK_IDS.entries()) {
+    for (const [i, id] of ids.entries()) {
       if (state.queue.length >= MAX_QUEUE) break;
-      addToQueue(await samplePhoto(id), names[i]);
+      addToQueue(await samplePhoto({ id }), names[i]);
       added++;
       renderInput();
     }
-    $('subject').value = 'алгебра';
-    $('grade').value = '7';
-    toast(`Стопка готова: ${added} ${plural(added, 'работа', 'работы', 'работ')} одного класса`);
+    toast(`Стопка готова: ${added} ${plural(added, 'работа', 'работы', 'работ')} · ${$('subject').selectedOptions[0].text}, ${grade} класс`);
   } catch (e) {
     console.error(e);
     toast('Не удалось сгенерировать стопку');
