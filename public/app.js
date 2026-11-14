@@ -369,22 +369,48 @@ function updateCheckBtn() {
   $('checkHint').hidden = ready || hasQueue;
   $('sampleBtn').disabled = state.busy;
   $('stackBtn').disabled = state.busy;
+  document.querySelectorAll('.lang-seg button').forEach((b) => { b.disabled = state.busy; });
 }
 
 /* ===== Примеры ===== */
-// Пример строится под предмет и класс, выбранные учителем; сами поля не меняются.
-const sampleTarget = () => ({ subject: $('subject').value, grade: Number($('grade').value) });
+// Язык примера: русский или казахский. Запоминается в браузере.
+const SAMPLE_LANG_KEY = 'daptery.sampleLang';
+let sampleLang = 'ru';
+try { if (localStorage.getItem(SAMPLE_LANG_KEY) === 'kz') sampleLang = 'kz'; } catch { /* ок */ }
+const LANG_NAME = { ru: 'на русском', kz: 'на казахском' };
+
+function renderSampleLang() {
+  document.querySelectorAll('.lang-seg button').forEach((b) => {
+    b.setAttribute('aria-checked', String(b.dataset.lang === sampleLang));
+  });
+}
+document.querySelector('.lang-seg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-lang]');
+  if (!b || state.busy) return;
+  sampleLang = b.dataset.lang;
+  try { localStorage.setItem(SAMPLE_LANG_KEY, sampleLang); } catch { /* ок */ }
+  renderSampleLang();
+});
+document.querySelector('.lang-seg').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  sampleLang = sampleLang === 'ru' ? 'kz' : 'ru';
+  try { localStorage.setItem(SAMPLE_LANG_KEY, sampleLang); } catch { /* ок */ }
+  renderSampleLang();
+  document.querySelector(`.lang-seg button[data-lang="${sampleLang}"]`).focus();
+});
+
+// Пример строится под предмет, класс и язык, выбранные учителем; сами поля не меняются.
+const sampleTarget = () => ({ subject: $('subject').value, grade: Number($('grade').value), lang: sampleLang });
 
 async function samplePhoto(opts) {
   const s = await renderSample(opts);
   return {
     dataUrl: s.dataUrl, width: s.width, height: s.height,
     bytes: Math.round((s.dataUrl.length - 23) * 0.75),
-    source: 'sample', sampleId: s.id, lang: s.lang, topic: s.topic,
+    source: 'sample', sampleId: s.key, lang: s.lang, topic: s.topic,
   };
 }
-
-const LANG_NOTE = { kz: ' (на казахском языке)', en: ' (на английском языке)', ru: '' };
 
 function pickNames(n) {
   const used = new Set([...state.works.map((w) => w.name), ...state.queue.map((q) => q.name)]);
@@ -406,7 +432,7 @@ $('sampleBtn').addEventListener('click', async () => {
       setPhoto(photo);
       if (!$('studentName').value.trim()) $('studentName').value = pickNames(1)[0];
     }
-    toast(`Пример готов: ${photo.topic}${LANG_NOTE[photo.lang] || ''} — в работе спрятана ошибка`);
+    toast(`Пример готов ${LANG_NAME[photo.lang]}: ${photo.topic} — в работе спрятана ошибка`);
   } catch (e) {
     console.error(e);
     toast('Не удалось сгенерировать пример');
@@ -420,17 +446,17 @@ $('stackBtn').addEventListener('click', async () => {
   $('stackBtn').disabled = true;
   try {
     moveSingleToQueue();
-    const { subject, grade } = sampleTarget();
-    const ids = stackIds(subject, grade);
-    const names = pickNames(ids.length);
+    const { subject, grade, lang } = sampleTarget();
+    const keys = stackIds(subject, grade, lang);
+    const names = pickNames(keys.length);
     let added = 0;
-    for (const [i, id] of ids.entries()) {
+    for (const [i, key] of keys.entries()) {
       if (state.queue.length >= MAX_QUEUE) break;
-      addToQueue(await samplePhoto({ id }), names[i]);
+      addToQueue(await samplePhoto({ key }), names[i]);
       added++;
       renderInput();
     }
-    toast(`Стопка готова: ${added} ${plural(added, 'работа', 'работы', 'работ')} · ${$('subject').selectedOptions[0].text}, ${grade} класс`);
+    toast(`Стопка готова ${LANG_NAME[lang]}: ${added} ${plural(added, 'работа', 'работы', 'работ')} · ${$('subject').selectedOptions[0].text}, ${grade} класс`);
   } catch (e) {
     console.error(e);
     toast('Не удалось сгенерировать стопку');
@@ -1071,6 +1097,7 @@ $('anBars').addEventListener('pointermove', (e) => {
 $('anBars').addEventListener('pointerleave', () => { tip.hidden = true; });
 
 /* ===== Старт ===== */
+renderSampleLang();
 renderDemo();
 renderInput();
 renderAll();

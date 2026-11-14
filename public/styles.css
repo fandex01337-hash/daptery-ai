@@ -639,8 +639,22 @@ table.works { width: 100%; border-collapse: collapse; font-size: 14px; min-width
   border-radius: 8px; border: 1px solid var(--border); background: var(--surface-3);
 }
 
+/* ===== Язык примера ===== */
+.lang-pick { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.lang-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.lang-seg { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--surface-3); border: 1px solid var(--border); }
+.lang-seg button {
+  border: 0; background: none; cursor: pointer;
+  padding: 7px 16px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 600; color: var(--muted);
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.lang-seg button:hover { color: var(--text); }
+.lang-seg button[aria-checked="true"] { background: var(--surface); color: var(--accent-text); box-shadow: 0 1px 3px rgba(16, 32, 22, .12); }
+.lang-seg button:disabled { cursor: not-allowed; opacity: .6; }
+
 /* ===== Стопка работ ===== */
-.sample-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-top: 12px; }
+.sample-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-top: 10px; }
 .sample-row .btn-secondary { margin-top: 0; padding-left: 14px; padding-right: 14px; }
 .queue { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); overflow: hidden; }
 .queue-head {
