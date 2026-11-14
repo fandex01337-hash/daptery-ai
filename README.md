@@ -24,11 +24,20 @@
 
 ## Деплой на Vercel
 
-1. Загрузите папку в GitHub и импортируйте репозиторий в Vercel (Framework preset: **Other**).
-2. В **Settings → Environment Variables** добавьте `GEMINI_API_KEY`
-   (и при желании `GEMINI_MODEL`).
+1. На https://vercel.com/new импортируйте репозиторий с GitHub (Framework preset: **Other**,
+   остальные поля не трогайте).
+2. В блоке **Environment Variables** добавьте `GEMINI_API_KEY` (и при желании `GEMINI_MODEL`,
+   `GEMINI_THINKING`, `RATE_LIMIT_PER_HOUR`).
 3. Deploy. Статика раздаётся из `public/` (это указано в `vercel.json`), а серверная функция
-   `api/check.js` отвечает на `POST /api/check`.
+   `api/check.js` отвечает на `POST /api/check`. Дальше каждый `git push` в `main` обновляет сайт сам.
+
+Сайт публичный, поэтому:
+
+- с одного IP можно сделать не больше `RATE_LIMIT_PER_HOUR` проверок в час (по умолчанию 30,
+  `0` — без ограничения). Счётчик живёт в памяти функции, это защита от случайного перерасхода,
+  а не от атаки;
+- настоящий потолок трат — бюджет и квоты в Google Cloud для проекта, к которому привязан ключ.
+  Задайте их до того, как раздавать ссылку.
 
 ## Возможности для показа и пилота
 
